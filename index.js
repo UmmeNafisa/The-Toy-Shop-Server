@@ -1,12 +1,17 @@
 const express = require('express')
+const bodyParser = require("body-parser");
 const app = express()
 const cors = require('cors');
 require('dotenv').config();
 const { MongoClient } = require('mongodb');
+const ObjectId = require("mongodb").ObjectId;
+
+
 const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json())
+app.use(bodyParser.urlencoded({ extended: true }));
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.jo0ws.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 console.log(uri);
@@ -18,6 +23,8 @@ async function run() {
         const database = client.db('theToyShop')
         const productCollection = database.collection("products");
         const usersCollection = database.collection('users')
+        const orderCollection = database.collection('order')
+        const reviewCollection = database.collection('review')
         console.log('database connected successfully');
 
         //get all Product
@@ -33,6 +40,24 @@ async function run() {
             // console.log(result);
             res.send(result)
         })
+
+        // get single product by id
+        app.get("/singleProduct/:id", async (req, res) => {
+            console.log(req.params.id);
+            const result = await productCollection
+                .find({ _id: ObjectId(req.params.id) })
+                .toArray();
+            res.send(result[0]);
+            console.log(result);
+        });
+
+        // insert orders 
+
+        app.post("/addOrders", async (req, res) => {
+            const result = await ordersCollection.insertOne(req.body);
+            res.send(result);
+        });
+
 
         /*  app.get('/appointments', async (req, res) => {
              const email = req.query.email;
@@ -113,7 +138,7 @@ async function run() {
 run().catch(console.dir);
 
 app.get('/', (req, res) => {
-    res.send('Hello Doctors portal!')
+    res.send('Hello from the Toy Shop!')
 })
 
 app.listen(port, () => {
