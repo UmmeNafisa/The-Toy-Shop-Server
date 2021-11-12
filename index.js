@@ -23,7 +23,7 @@ async function run() {
         const database = client.db('theToyShop')
         const productCollection = database.collection("products");
         const usersCollection = database.collection('users')
-        const orderCollection = database.collection('order')
+        const ordersCollection = database.collection('orders')
         const reviewCollection = database.collection('review')
         console.log('database connected successfully');
 
@@ -43,42 +43,67 @@ async function run() {
 
         // get single product by id
         app.get("/singleProduct/:id", async (req, res) => {
-            console.log(req.params.id);
+            // console.log(req.params.id);
             const result = await productCollection
                 .find({ _id: ObjectId(req.params.id) })
                 .toArray();
             res.send(result[0]);
-            console.log(result);
+            // console.log(result);
         });
 
         // insert orders 
-
         app.post("/addOrders", async (req, res) => {
             const result = await ordersCollection.insertOne(req.body);
             res.send(result);
+            console.log(result);
         });
 
+        //  get the  orders by email
+        app.get("/myOrder", async (req, res) => {
+            console.log(req.params.email);
+            const email = req.query.email;
+            const query = { email: email }
+            const result = await ordersCollection.find(query).toArray();
+            res.send(result);
+            console.log(result);
+        });
 
-        /*  app.get('/appointments', async (req, res) => {
-             const email = req.query.email;
-             const date = req.query.date;
-             console.log(date, email)
- 
-             const query = { email: email, date: date }
- 
-             const cursor = appointmentCollection.find(query);
-             const appointments = await cursor.toArray();
-             res.json(appointments);
-         })
- 
-         app.post('/appointments', async (req, res) => {
-             const appointment = req.body;
-             const result = await appointmentCollection.insertOne(appointment)
-             // console.log(appointment)
-             res.json(result)
- 
-         }) */
+        /// all order
+        app.get("/allOrders", async (req, res) => {
+            // console.log("hello");
+            const result = await ordersCollection.find({}).toArray();
+            res.send(result);
+        });
 
+        // status update
+        app.put("/statusUpdate/:id", async (req, res) => {
+            console.log(req.body);
+            const filter = { _id: ObjectId(req.params.id) };
+            console.log(req.params.id);
+            const result = await ordersCollection.updateOne(filter, {
+                $set: {
+                    status: req.body.status,
+                },
+            });
+            res.send(result);
+            console.log(result);
+        });
+
+        //delete manage orders from    
+        app.delete('/allOrders/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const query = { _id: ObjectId(id) };
+            const result = await ordersCollection.deleteOne(query);
+            console.log(result);
+            res.json(result);
+        });
+
+        // review
+        app.post("/addReview", async (req, res) => {
+            const result = await reviewCollection.insertOne(req.body);
+            res.send(result);
+        });
         //check that if email is admin or not 
         /*  app.get('/users/:email', async (req, res) => {
              const email = req.params.email;
