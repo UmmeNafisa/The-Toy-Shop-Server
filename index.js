@@ -1,21 +1,41 @@
 const express = require('express')
-const bodyParser = require("body-parser");
 const app = express()
 const cors = require('cors');
 require('dotenv').config();
 const { MongoClient } = require('mongodb');
 const ObjectId = require("mongodb").ObjectId;
+const admin = require("firebase-admin");
 
 
 const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json())
-app.use(bodyParser.urlencoded({ extended: true }));
+
+
+const serviceAccount = require('./the-toy-shop-52b81-firebase-adminsdk-p0l5n.json')
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.jo0ws.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 console.log(uri);
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+async function verifyToken(req, res, next) {
+    if (req.headers?.authorization?.startsWith('Bearer ')) {
+        const token = req.headers.authorization.split(' ')[1];
+
+        try {
+            const decodedUser = await admin.auth().verifyIdToken(token);
+            req.decodedEmail = decodedUser.email;
+        }
+        catch {
+        }
+    }
+    next();
+}
 
 async function run() {
     try {
@@ -68,7 +88,7 @@ async function run() {
             console.log(result);
         });
 
-        /// all order
+        /// get all orders
         app.get("/allOrders", async (req, res) => {
             // console.log("hello");
             const result = await ordersCollection.find({}).toArray();
@@ -89,7 +109,7 @@ async function run() {
             console.log(result);
         });
 
-        //delete manage orders from    
+        //delete manage orders and orders   
         app.delete('/allOrders/:id', async (req, res) => {
             const id = req.params.id;
             console.log(id);
@@ -104,17 +124,19 @@ async function run() {
             const result = await reviewCollection.insertOne(req.body);
             res.send(result);
         });
+
         //check that if email is admin or not 
-        /*  app.get('/users/:email', async (req, res) => {
-             const email = req.params.email;
-             const query = { email: email };
-             const user = await usersCollection.findOne(query);
-             let isAdmin = false;
-             if (user?.role === 'admin') {
-                 isAdmin = true;
-             }
-             res.json({ admin: isAdmin });
-         }) */
+        app.get('/users/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            let isAdmin = false;
+            if (user?.role === 'admin') {
+                isAdmin = true;
+            }
+            res.json({ admin: isAdmin });
+        })
+
 
         // add users data separately in a new collection
         app.post('/users', async (req, res) => {
@@ -137,23 +159,36 @@ async function run() {
 
         })
 
-        // update  the value of make an admin field 
-        /*   app.put('/users/admin', verifyToken, async (req, res) => {
-              const user = req.body;
-              const requester = req.decodedEmail;
-              if (requester) {
-                  const requesterAccount = await usersCollection.findOne({ email: requester });
-                  if (requesterAccount.role === 'admin') {
-                      const filter = { email: user.email };
-                      const updateDoc = { $set: { role: 'admin' } };
-                      const result = await usersCollection.updateOne(filter, updateDoc);
-                      res.json(result);
-                  }
-              }
-              else {
-                  res.status(403).json({ message: 'you do not have access to make admin' })
-              }
-          }) */
+        /* make admin   
+        app.put('/users/admin', async (req, res) => {
+             const filter = { email: req.body.email };
+             const result = await usersCollection.find(filter).toArray();
+             if (result) {
+                 const documents = await usersCollection.updateOne(filter, {
+                     $set: { role: "admin" },
+                 });
+                 console.log(documents);
+             }
+         }); */
+
+        // update  the value of make an admin field with JWT 
+        app.put('/users/admin', verifyToken, async (req, res) => {
+            const user = req.body;
+            const requester = req.decodedEmail;
+            if (requester) {
+                const requesterAccount = await usersCollection.findOne({ email: requester });
+                if (requesterAccount.role === 'admin') {
+                    const filter = { email: user.email };
+                    const updateDoc = { $set: { role: 'admin' } };
+                    const result = await usersCollection.updateOne(filter, updateDoc);
+                    console.log(result);
+                    res.json(result);
+                }
+            }
+            else {
+                res.status(403).json({ message: 'you do not have access to make admin' })
+            }
+        })
     }
     finally {
         // await client.close();
@@ -169,5 +204,3 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
     console.log(`listening at ${port}`)
 })
-
-
