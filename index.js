@@ -55,27 +55,22 @@ async function run() {
 
         //add Product
         app.post("/addProduct", async (req, res) => {
-            // console.log(req.body)
             const result = await productCollection.insertOne(req.body);
-            // console.log(result);
             res.send(result)
         })
 
         // get single product by id
         app.get("/singleProduct/:id", async (req, res) => {
-            // console.log(req.params.id);
             const result = await productCollection
                 .find({ _id: ObjectId(req.params.id) })
                 .toArray();
             res.send(result[0]);
-            // console.log(result);
         });
 
         // insert orders 
         app.post("/addOrders", async (req, res) => {
             const result = await ordersCollection.insertOne(req.body);
             res.send(result);
-            console.log(result);
         });
 
         //  get the  orders by email
@@ -85,41 +80,42 @@ async function run() {
             const query = { email: email }
             const result = await ordersCollection.find(query).toArray();
             res.send(result);
-            console.log(result);
         });
 
         /// get all orders
         app.get("/allOrders", async (req, res) => {
-            // console.log("hello");
             const result = await ordersCollection.find({}).toArray();
             res.send(result);
         });
 
         // status update
         app.put("/statusUpdate/:id", async (req, res) => {
-            console.log(req.body);
             const filter = { _id: ObjectId(req.params.id) };
-            console.log(req.params.id);
             const result = await ordersCollection.updateOne(filter, {
                 $set: {
                     status: req.body.status,
                 },
             });
             res.send(result);
-            console.log(result);
         });
 
         //delete manage orders and orders   
         app.delete('/allOrders/:id', async (req, res) => {
             const id = req.params.id;
-            console.log(id);
+            // console.log(id);
             const query = { _id: ObjectId(id) };
             const result = await ordersCollection.deleteOne(query);
-            console.log(result);
+            // console.log(result);
             res.json(result);
         });
 
-        // review
+        //review get
+        app.get("/allReview", async (req, res) => {
+            const result = await reviewCollection.find({}).toArray();
+            res.send(result);
+        })
+
+        // review post
         app.post("/addReview", async (req, res) => {
             const result = await reviewCollection.insertOne(req.body);
             res.send(result);
@@ -142,7 +138,7 @@ async function run() {
         app.post('/users', async (req, res) => {
             const user = req.body;
             const result = await usersCollection.insertOne(user)
-            console.log(result)
+            // console.log(result)
             res.json(result)
 
         })
@@ -150,7 +146,7 @@ async function run() {
         //filtered the data if user exist or not, exist then not added again, not exist then add user to db
         app.put('/users', async (req, res) => {
             const user = req.body;
-            console.log("put", user)
+            // console.log("put", user)
             const filter = { email: user.email }
             const options = { upsert: true };
             const updateDoc = { $set: user }
@@ -158,18 +154,6 @@ async function run() {
             res.json(result)
 
         })
-
-        /* make admin   
-        app.put('/users/admin', async (req, res) => {
-             const filter = { email: req.body.email };
-             const result = await usersCollection.find(filter).toArray();
-             if (result) {
-                 const documents = await usersCollection.updateOne(filter, {
-                     $set: { role: "admin" },
-                 });
-                 console.log(documents);
-             }
-         }); */
 
         // update  the value of make an admin field with JWT 
         app.put('/users/admin', verifyToken, async (req, res) => {
@@ -181,7 +165,7 @@ async function run() {
                     const filter = { email: user.email };
                     const updateDoc = { $set: { role: 'admin' } };
                     const result = await usersCollection.updateOne(filter, updateDoc);
-                    console.log(result);
+                    // console.log(result);
                     res.json(result);
                 }
             }
