@@ -67,6 +67,14 @@ async function run() {
             res.send(result[0]);
         });
 
+        //delete a item from manage products
+        app.delete('/allProducts/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await productCollection.deleteOne(query);
+            res.json(result);
+        });
+
         // insert orders 
         app.post("/addOrders", async (req, res) => {
             const result = await ordersCollection.insertOne(req.body);
@@ -87,6 +95,7 @@ async function run() {
             const result = await ordersCollection.find({}).toArray();
             res.send(result);
         });
+
 
         // status update
         app.put("/statusUpdate/:id", async (req, res) => {
